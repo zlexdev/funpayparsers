@@ -106,7 +106,8 @@ def parse_date_string(date_string: str, /) -> int:
     :return: timestamp in UTC+0 timezone.
     """
     date_string = date_string.lower().strip()
-    date = datetime.now().replace(second=0, microsecond=0, tzinfo=ZoneInfo('Europe/Moscow'))
+    # Moscow wall clock, not the machine's: a naive now() labelled MSK shifts the day on a UTC host.
+    date = datetime.now(ZoneInfo('Europe/Moscow')).replace(second=0, microsecond=0)
 
     if match := TIME_ONLY_RE.match(date_string):
         return int(

@@ -11,12 +11,11 @@ from funpayparsers.parsers.utils import (
     parse_date_string,
 )
 
-CURR_DATE = datetime.now().replace(
+CURR_DATE = datetime.now(ZoneInfo('Europe/Moscow')).replace(
     hour=0,
     minute=0,
     second=0,
     microsecond=0,
-    tzinfo=ZoneInfo('Europe/Moscow')
 )
 
 SEPARATORS = (',', ' at', ' в', ' о')
@@ -60,3 +59,20 @@ SEPARATORS = (',', ' at', ' в', ' о')
 )
 def test_date_string_parsing(date_str: str, expected: datetime) -> None:
     assert parse_date_string(date_str) == expected
+
+
+class _UtcHostClock(datetime):
+    """`datetime` whose naive `now()` is the UTC wall clock, as on a UTC server."""
+
+    @classmethod
+    def now(cls, tz=None):
+        utc = datetime(2026, 10, 20, 22, 30, tzinfo=ZoneInfo('UTC'))
+        return utc.astimezone(tz) if tz else utc.replace(tzinfo=None)
+
+
+def test_today_follows_the_moscow_day_on_a_utc_host(monkeypatch):
+    monkeypatch.setattr('funpayparsers.parsers.utils.datetime', _UtcHostClock)
+
+    # 22:30 UTC on the 20th is 01:30 MSK on the 21st.
+    expected = datetime(2026, 10, 21, 12, 0, tzinfo=ZoneInfo('Europe/Moscow')).timestamp()
+    assert parse_date_string('сегодня, 12:00') == expected
